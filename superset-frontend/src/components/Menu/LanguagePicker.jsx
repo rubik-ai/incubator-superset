@@ -28,6 +28,7 @@ const propTypes = {
 export default function LanguagePicker({ locale, languages }) {
   return (
     <NavDropdown
+    className="hidden"
       id="locale-dropdown"
       title={
         <span className="f16">

@@ -425,7 +425,7 @@ class DashboardList extends React.PureComponent<Props, State> {
     } = this.state;
 
     return (
-      <div className="container welcome">
+      <div className="container-fluid welcome">
         <Panel>
           <Panel.Body>
             <ConfirmStatusChange

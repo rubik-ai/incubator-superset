@@ -391,7 +391,7 @@ class ChartList extends React.PureComponent<Props, State> {
       sliceCurrentlyEditing,
     } = this.state;
     return (
-      <div className="container welcome">
+      <div className="container-fluid welcome">
         <Panel>
           <Panel.Body>
             {sliceCurrentlyEditing && (
