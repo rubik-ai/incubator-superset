@@ -38,8 +38,41 @@
 
   .caret {
     display: inline-block;
-    padding: 0 5px 18px 5px;
+    padding: 0 5px 0 5px;
+    vertical-align: unset;
   }
+
+  li {
+    a{
+      i{
+        display:none;
+      }
+    }
+  }
+
+  .dropdown-menu {
+    li {
+      a {
+        padding: 10px 20px;
+        line-height: 2rem;
+      }
+    }
+  }
+
+}
+
+.navbar-right {
+  li {
+    a{
+      i{
+        display:unset;
+      }
+    }
+  }
+}
+.navbar-brand {
+  height: inherit;
+  padding: 14px;
 }
 
 .navbar-inverse {
@@ -421,7 +454,7 @@ a.list-group-item {
 .nav-tabs > li.active > a:hover,
 .nav-tabs > li.active > a:focus {
   background-color: @lightest;
-  font-weight: @font-weight-bold;
+  font-weight: @font-weight-normal;
   border-top: 3px solid @brand-primary;
 }
 

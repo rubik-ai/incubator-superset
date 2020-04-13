@@ -55,7 +55,7 @@ export default function Welcome({ user }) {
   );
 
   return (
-    <div className="container welcome">
+    <div className="container-fluid welcome">
       <Tabs
         activeKey={activeTab}
         onSelect={setActiveTab}

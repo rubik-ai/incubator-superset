@@ -387,7 +387,7 @@ class DatasetList extends React.PureComponent<Props, State> {
     const { datasets, datasetCount, loading, filters } = this.state;
 
     return (
-      <div className="container welcome">
+      <div className="container-fluid welcome">
         <Panel>
           <Panel.Body>
             <ConfirmStatusChange

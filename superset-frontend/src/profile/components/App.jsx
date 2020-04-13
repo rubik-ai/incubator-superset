@@ -33,7 +33,7 @@ const propTypes = {
 
 export default function App(props) {
   return (
-    <div className="container app">
+    <div className="container-fluid app">
       <Row>
         <Col md={3}>
           <UserInfo user={props.user} />

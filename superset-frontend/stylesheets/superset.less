@@ -82,10 +82,14 @@ input.form-control {
   text-align: left;
 }
 
+.radio input[type="radio"], .radio-inline input[type="radio"], .checkbox input[type="checkbox"], .checkbox-inline input[type="checkbox"] {
+  top: -2px;
+}
+
 input[type='checkbox'] {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  // width: 16px;
+  // height: 16px;
 }
 
 .widget-is-cached {
@@ -580,3 +584,39 @@ td.filtered {
 .table-name {
   font-size: @font-size-l;
 }
+// custom.css
+.sql-toolbar span.label {
+  // 
+}
+.list-container {
+  .btn-xs, .btn-group-xs > .btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 2px;
+    border:none !important;
+    background: none !important;
+    &:hover {
+      background: none !important;
+    }
+  }
+    .table > thead > tr > th, .table > tbody > tr > th, .table > tfoot > tr > th, .table > thead > tr > td, .table > tbody > tr > td, .table > tfoot > tr > td {
+      padding: 8px;
+      vertical-align: middle;
+    }
+    .table > thead > tr > th a {
+      color:#333 !important;
+    }
+
+}
+.btn.btn-sm.btn-default{
+  padding: 5px 10px;
+  line-height: 0px;
+  border-radius: 2px;
+  height:28px;
+}
+// button.btn.btn-default.btn-sm.dropdown-toggle {
+//   padding: 10px;
+//   line-height: 0px;
+//   border-radius: 2px;
+// }

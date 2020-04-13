@@ -60,7 +60,7 @@ export default function Menu({
         <Navbar.Header>
           <Navbar.Brand>
             <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+              <img width="90" src={brand.icon} alt={brand.alt} />
             </a>
           </Navbar.Brand>
           <Navbar.Toggle />
