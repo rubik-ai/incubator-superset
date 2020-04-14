@@ -62,13 +62,13 @@ export default function ColumnElement(props) {
     ));
   }
   return (
-    <div className="clearfix table-column">
+    <div className="clearfix table-column p-b-5 p-t-5">
       <div className="pull-left m-l-10 col-name">
         {name}
         {icons}
       </div>
-      <div className="pull-right text-muted">
-        <small> {col.type}</small>
+      <div className="pull-right text-muted col-type" style={{border:'1px solid #ddd', padding:'2px 5px', fontSize:'10px'}}>
+        <small>{col.type}</small>
       </div>
     </div>
   );

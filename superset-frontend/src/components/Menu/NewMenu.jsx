@@ -33,7 +33,7 @@ export default function NewMenu() {
         type="button"
         style={buttonStyle}
         data-toggle="dropdown"
-        className="dropdown-toggle btn btn-sm btn-primary"
+        className="dropdown-toggle btn btn-sm btn-default"
       >
         <i className="fa fa-plus" /> New
       </button>
@@ -41,19 +41,19 @@ export default function NewMenu() {
         <li>
           <a href="/superset/sqllab">
             <span className="fa fa-fw fa-search" />
-            {t('SQL Query')}
+            {t(' SQL Query')}
           </a>
         </li>
         <li>
           <a href="/chart/add">
             <span className="fa fa-fw fa-bar-chart" />
-            {t('Chart')}
+            {t(' Chart')}
           </a>
         </li>
         <li>
           <a href="/dashboard/new/">
             <span className="fa fa-fw fa-dashboard" />
-            {t('Dashboard')}
+            {t(' Dashboard')}
           </a>
         </li>
       </ul>

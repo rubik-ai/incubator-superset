@@ -36,7 +36,7 @@ const UserInfo = ({ user }) => (
         size={220}
         alt={t('Profile picture provided by Gravatar')}
         className="img-rounded"
-        style={{ borderRadius: 15 }}
+        style={{ padding: 20, background:'#fff' }}
       />
     </a>
     <hr />
