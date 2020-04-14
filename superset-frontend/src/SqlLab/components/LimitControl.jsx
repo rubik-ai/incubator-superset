@@ -131,7 +131,7 @@ export default class LimitControl extends React.PureComponent {
   render() {
     return (
       <div>
-        <Label style={{ cursor: 'pointer' }} onClick={this.handleToggle}>
+        <Label bsStyle="default" style={{ cursor: 'pointer', padding:'8px 10px' }} onClick={this.handleToggle}>
           LIMIT {this.props.value || this.props.maxRow}
         </Label>
         <Overlay

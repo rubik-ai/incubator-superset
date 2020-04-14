@@ -198,7 +198,7 @@ export default class VizTypeControl extends React.PureComponent {
           }
         >
           <>
-            <Label onClick={this.toggleModal} style={LABEL_STYLE}>
+            <Label bsStyle="primary" onClick={this.toggleModal} style={LABEL_STYLE}>
               {registry.has(value) ? registry.get(value).name : `${value}`}
             </Label>
             {!registry.has(value) && (

@@ -45,7 +45,7 @@ export const TIME_OPTIONS = [
 ];
 
 // SqlEditor layout constants
-export const SQL_EDITOR_GUTTER_HEIGHT = 5;
+export const SQL_EDITOR_GUTTER_HEIGHT = 20;
 export const SQL_EDITOR_GUTTER_MARGIN = 3;
 export const SQL_TOOLBAR_HEIGHT = 51;
 

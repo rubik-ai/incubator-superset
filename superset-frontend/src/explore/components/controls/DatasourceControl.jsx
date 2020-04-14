@@ -133,7 +133,7 @@ class DatasourceControl extends React.PureComponent {
           >
             <DropdownButton
               title={datasource.name}
-              className="label label-default label-btn m-r-5"
+              className="label label-primary label-btn m-r-5"
               bsSize="sm"
               id="datasource_menu"
             >

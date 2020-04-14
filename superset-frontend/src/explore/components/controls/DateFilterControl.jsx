@@ -595,7 +595,7 @@ export default class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>
+          <Label bsStyle="primary" name="popover-trigger" style={{ cursor: 'pointer' }}>
             {value}
           </Label>
         </OverlayTrigger>
