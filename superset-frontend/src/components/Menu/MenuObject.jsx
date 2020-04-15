@@ -50,6 +50,7 @@ export default function MenuObject({ label, icon, childs, url, index }) {
       id={`menu-dropdown-${label}`}
       eventKey={index}
       title={navTitle}
+      className={label}
     >
       {childs.map((child, index1) =>
         child === '-' ? (
