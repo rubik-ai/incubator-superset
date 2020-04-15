@@ -78,7 +78,10 @@
 }
 
 .navbar-inverse {
-  border: 3px solid @navbar-inverse-bg;
+  border-top: 3px solid @navbar-inverse-bg;
+  border-right: 0px solid @navbar-inverse-bg;
+  border-left: 0px solid @navbar-inverse-bg;
+  border-bottom: 1px solid #cecece;
 }
 
 .navbar-inverse .navbar-nav > li > a:hover,
@@ -334,7 +337,7 @@ label {
 // Containers =================================================================
 
 .panel {
-  border: none;
+  border: 1px solid @card-bg;
 
   &-heading,
   &-footer {
@@ -377,7 +380,7 @@ label {
 
     .panel-title {
       color: @text-color;
-      padding-bottom: 5px;
+      padding-bottom: 10px;
       border-bottom: 1px solid @gray-light;
 
       h1,
