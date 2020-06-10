@@ -21,11 +21,11 @@ from typing import Any, Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Uni
 
 from flask import current_app, g
 from flask_appbuilder import Model
-from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
+    PermissionView,
 )
 from flask_appbuilder.security.views import (
     PermissionModelView,
@@ -43,6 +43,7 @@ from sqlalchemy.orm.query import Query
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
 
@@ -93,6 +94,10 @@ RoleModelView.include_route_methods = RouteMethod.CRUD_SET
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
+
+RoleModelView.list_columns = ["name"]
+RoleModelView.edit_columns = ["name", "permissions", "user"]
+RoleModelView.related_views = []
 
 
 class SupersetSecurityManager(SecurityManager):
@@ -291,6 +296,25 @@ class SupersetSecurityManager(SecurityManager):
 
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
 
+    def get_datasource_access_error_object(
+        self, datasource: "BaseDatasource"
+    ) -> SupersetError:
+        """
+        Return the error object for the denied Superset datasource.
+
+        :param datasource: The denied Superset datasource
+        :returns: The error object
+        """
+        return SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message=self.get_datasource_access_error_msg(datasource),
+            level=ErrorLevel.ERROR,
+            extra={
+                "link": self.get_datasource_access_link(datasource),
+                "datasource": datasource.name,
+            },
+        )
+
     def get_table_access_error_msg(self, tables: Set["Table"]) -> str:
         """
         Return the error message for the denied SQL tables.
@@ -302,6 +326,23 @@ class SupersetSecurityManager(SecurityManager):
         quoted_tables = [f"`{table}`" for table in tables]
         return f"""You need access to the following tables: {", ".join(quoted_tables)},
             `all_database_access` or `all_datasource_access` permission"""
+
+    def get_table_access_error_object(self, tables: Set["Table"]) -> SupersetError:
+        """
+        Return the error object for the denied SQL tables.
+
+        :param tables: The set of denied SQL tables
+        :returns: The error object
+        """
+        return SupersetError(
+            error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+            message=self.get_table_access_error_msg(tables),
+            level=ErrorLevel.ERROR,
+            extra={
+                "link": self.get_table_access_link(tables),
+                "tables": [str(table) for table in tables],
+            },
+        )
 
     def get_table_access_link(self, tables: Set["Table"]) -> Optional[str]:
         """
@@ -333,7 +374,7 @@ class SupersetSecurityManager(SecurityManager):
         if self.database_access(database) or self.all_datasource_access():
             return True
 
-        schema_perm = self.get_schema_perm(database, schema)
+        schema_perm = self.get_schema_perm(database, schema=table.schema or schema)
         if schema_perm and self.can_access("schema_access", schema_perm):
             return True
 
@@ -356,7 +397,6 @@ class SupersetSecurityManager(SecurityManager):
         :param schema: The SQL database schema
         :returns: The rejected tables
         """
-
         query = sql_parse.ParsedQuery(sql)
 
         return {
@@ -562,11 +602,8 @@ class SupersetSecurityManager(SecurityManager):
 
         logger.info("Cleaning faulty perms")
         sesh = self.get_session
-        pvms = sesh.query(ab_models.PermissionView).filter(
-            or_(
-                ab_models.PermissionView.permission == None,
-                ab_models.PermissionView.view_menu == None,
-            )
+        pvms = sesh.query(PermissionView).filter(
+            or_(PermissionView.permission == None, PermissionView.view_menu == None,)
         )
         deleted_count = pvms.delete()
         sesh.commit()
@@ -600,7 +637,9 @@ class SupersetSecurityManager(SecurityManager):
         self.get_session.commit()
         self.clean_perms()
 
-    def set_role(self, role_name: str, pvm_check: Callable) -> None:
+    def set_role(
+        self, role_name: str, pvm_check: Callable[[PermissionView], bool]
+    ) -> None:
         """
         Set the FAB permission/views for the role.
 
@@ -610,7 +649,7 @@ class SupersetSecurityManager(SecurityManager):
 
         logger.info("Syncing {} perms".format(role_name))
         sesh = self.get_session
-        pvms = sesh.query(ab_models.PermissionView).all()
+        pvms = sesh.query(PermissionView).all()
         pvms = [p for p in pvms if p.permission and p.view_menu]
         role = self.add_role(role_name)
         role_pvms = [p for p in pvms if pvm_check(p)]
@@ -829,8 +868,7 @@ class SupersetSecurityManager(SecurityManager):
 
         if not self.datasource_access(datasource):
             raise SupersetSecurityException(
-                self.get_datasource_access_error_msg(datasource),
-                self.get_datasource_access_link(datasource),
+                self.get_datasource_access_error_object(datasource),
             )
 
     def assert_query_context_permission(self, query_context: "QueryContext") -> None:

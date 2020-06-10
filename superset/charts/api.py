@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict
 
 import simplejson
-from apispec import APISpec
 from flask import g, make_response, redirect, request, Response, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -48,6 +48,7 @@ from superset.charts.schemas import (
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
+    openapi_spec_methods_override,
     thumbnail_query_schema,
 )
 from superset.constants import RouteMethod
@@ -55,13 +56,14 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.utils.core import json_int_dttm_ser
+from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
 from superset.utils.screenshots import ChartScreenshot
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     statsd_metrics,
 )
+from superset.views.core import CsvResponse, generate_download_headers
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -145,14 +147,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
     edit_model_schema = ChartPutSchema()
 
     openapi_spec_tag = "Charts"
+    """ Override the name set for this collection of endpoints """
+    openapi_spec_component_schemas = CHART_DATA_SCHEMAS
+    """ Add extra schemas to the OpenAPI components schema section """
+    openapi_spec_methods = openapi_spec_methods_override
+    """ Overrides GET methods OpenApi descriptions """
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
+
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners)
     }
+
     allowed_rel_fields = {"owners"}
 
     def __init__(self) -> None:
@@ -169,7 +178,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         post:
           description: >-
-            Create a new Chart
+            Create a new Chart.
           requestBody:
             description: Chart schema
             required: true
@@ -224,7 +233,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         put:
           description: >-
-            Changes a Chart
+            Changes a Chart.
           parameters:
           - in: path
             schema:
@@ -290,7 +299,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         delete:
           description: >-
-            Deletes a Chart
+            Deletes a Chart.
           parameters:
           - in: path
             schema:
@@ -340,7 +349,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ---
         delete:
           description: >-
-            Deletes multiple Charts in a bulk operation
+            Deletes multiple Charts in a bulk operation.
           parameters:
           - in: query
             name: q
@@ -424,10 +433,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
             """
-        if not request.is_json:
+
+        if request.is_json:
+            json_body = request.json
+        elif request.form.get("form_data"):
+            # CSV export submits regular form data
+            json_body = json.loads(request.form["form_data"])
+        else:
             return self.response_400(message="Request is not JSON")
         try:
-            query_context, errors = ChartDataQueryContextSchema().load(request.json)
+            query_context, errors = ChartDataQueryContextSchema().load(json_body)
             if errors:
                 return self.response_400(
                     message=_("Request is incorrect: %(error)s", error=errors)
@@ -438,13 +453,25 @@ class ChartRestApi(BaseSupersetModelRestApi):
             security_manager.assert_query_context_permission(query_context)
         except SupersetSecurityException:
             return self.response_401()
-        payload_json = query_context.get_payload()
-        response_data = simplejson.dumps(
-            {"result": payload_json}, default=json_int_dttm_ser, ignore_nan=True
-        )
-        resp = make_response(response_data, 200)
-        resp.headers["Content-Type"] = "application/json; charset=utf-8"
-        return resp
+        payload = query_context.get_payload()
+        result_format = query_context.result_format
+        if result_format == ChartDataResultFormat.CSV:
+            # return the first result
+            result = payload[0]["data"]
+            return CsvResponse(
+                result,
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv",
+            )
+        elif result_format == ChartDataResultFormat.JSON:
+            response_data = simplejson.dumps(
+                {"result": payload}, default=json_int_dttm_ser, ignore_nan=True
+            )
+            resp = make_response(response_data, 200)
+            resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            return resp
+        raise self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/<pk>/thumbnail/<digest>/", methods=["GET"])
     @protect()
@@ -457,7 +484,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """Get Chart thumbnail
         ---
         get:
-          description: Compute or get already computed chart thumbnail from cache
+          description: Compute or get already computed chart thumbnail from cache.
           parameters:
           - in: path
             schema:
@@ -509,13 +536,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
         )
 
-    def add_apispec_components(self, api_spec: APISpec) -> None:
-        for chart_type in CHART_DATA_SCHEMAS:
-            api_spec.components.schema(
-                chart_type.__name__, schema=chart_type,
-            )
-        super().add_apispec_components(api_spec)
-
     @expose("/datasources", methods=["GET"])
     @protect()
     @safe
@@ -523,6 +543,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """Get available datasources
         ---
         get:
+          description: Get available datasources.
           responses:
             200:
               description: charts unique datasource data

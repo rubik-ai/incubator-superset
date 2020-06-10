@@ -20,14 +20,7 @@ from urllib import parse
 
 import sqlparse
 from dataclasses import dataclass
-from sqlparse.sql import (
-    Function,
-    Identifier,
-    IdentifierList,
-    remove_quotes,
-    Token,
-    TokenList,
-)
+from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
@@ -89,10 +82,7 @@ class ParsedQuery:
         self._limit: Optional[int] = None
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
-        self._parsed = sqlparse.parse(
-            sqlparse.format(self.stripped(), strip_comments=True)
-        )
-
+        self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
             self._limit = _extract_limit_from_query(statement)
 
@@ -168,7 +158,7 @@ class ParsedQuery:
     def _is_identifier(token: Token) -> bool:
         return isinstance(token, (IdentifierList, Identifier))
 
-    def _process_tokenlist(self, token_list: TokenList):
+    def _process_tokenlist(self, token_list: TokenList) -> None:
         """
         Add table names to table set
 
@@ -214,9 +204,17 @@ class ParsedQuery:
         exec_sql += f"CREATE TABLE {full_table_name} AS \n{sql}"
         return exec_sql
 
-    def _extract_from_token(self, token: Token):  # pylint: disable=too-many-branches
+    def _extract_from_token(  # pylint: disable=too-many-branches
+        self, token: Token
+    ) -> None:
         """
-        Populate self._tables from token
+        <Identifier> store a list of subtokens and <IdentifierList> store lists of
+        subtoken list.
+
+        It extracts <IdentifierList> and <Identifier> from :param token: and loops
+        through all subtokens recursively. It finds table_name_preceding_token and
+        passes <IdentifierList> and <Identifier> to self._process_tokenlist to populate
+        self._tables.
 
         :param token: instance of Token or child class, e.g. TokenList, to be processed
         """
@@ -248,9 +246,8 @@ class ParsedQuery:
                         if isinstance(token2, TokenList):
                             self._process_tokenlist(token2)
             elif isinstance(item, IdentifierList):
-                for token2 in item.tokens:
-                    if not self._is_identifier(token2):
-                        self._extract_from_token(item)
+                if any(not self._is_identifier(token2) for token2 in item.tokens):
+                    self._extract_from_token(item)
 
     def set_or_update_query_limit(self, new_limit: int) -> str:
         """Returns the query with the specified limit.
@@ -284,39 +281,3 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
-
-    def set_alias(self) -> str:
-        """
-        Returns a new query string where all functions have alias.
-        This is particularly necessary for MSSQL engines.
-
-        :return: String with new aliased SQL query
-        """
-        new_sql = ""
-        changed_counter = 1
-        for token in self._parsed[0].tokens:
-            # Identifier list (list of columns)
-            if isinstance(token, IdentifierList) and token.ttype is None:
-                for i, identifier in enumerate(token.get_identifiers()):
-                    # Functions are anonymous on MSSQL
-                    if isinstance(identifier, Function) and not identifier.has_alias():
-                        identifier.value = (
-                            f"{identifier.value} AS"
-                            f" {identifier.get_real_name()}_{changed_counter}"
-                        )
-                        changed_counter += 1
-                    new_sql += str(identifier.value)
-                    # If not last identifier
-                    if i != len(list(token.get_identifiers())) - 1:
-                        new_sql += ", "
-            # Just a lonely function?
-            elif isinstance(token, Function) and token.ttype is None:
-                if not token.has_alias():
-                    token.value = (
-                        f"{token.value} AS {token.get_real_name()}_{changed_counter}"
-                    )
-                new_sql += str(token.value)
-            # Nothing to change, assemble what we have
-            else:
-                new_sql += str(token.value)
-        return new_sql

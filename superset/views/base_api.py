@@ -16,15 +16,18 @@
 # under the License.
 import functools
 import logging
-from typing import Any, cast, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from flask import Response
-from flask_appbuilder import ModelRestApi
+from apispec import APISpec
+from flask import Blueprint, Response
+from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
+from marshmallow import Schema
 
 from superset.stats_logger import BaseStatsLogger
+from superset.typing import FlaskResponse
 from superset.utils.core import time_function
 
 logger = logging.getLogger(__name__)
@@ -38,12 +41,12 @@ get_related_schema = {
 }
 
 
-def statsd_metrics(f):
+def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     """
     Handle sending all statsd metrics from the REST API
     """
 
-    def wraps(self, *args: Any, **kwargs: Any) -> Response:
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
         duration, response = time_function(f, self, *args, **kwargs)
         self.send_stats_metrics(response, f.__name__, duration)
         return response
@@ -109,15 +112,35 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
 
+    openapi_spec_component_schemas: Tuple[Schema, ...] = tuple()
+    """
+    Add extra schemas to the OpenAPI component schemas section
+    """  # pylint: disable=pointless-string-statement
+
+    add_columns: List[str]
+    edit_columns: List[str]
+    list_columns: List[str]
+    show_columns: List[str]
+
     def __init__(self) -> None:
         super().__init__()
         self.stats_logger = BaseStatsLogger()
 
-    def create_blueprint(self, appbuilder, *args, **kwargs):
+    def add_apispec_components(self, api_spec: APISpec) -> None:
+
+        for schema in self.openapi_spec_component_schemas:
+            api_spec.components.schema(
+                schema.__name__, schema=schema,
+            )
+        super().add_apispec_components(api_spec)
+
+    def create_blueprint(
+        self, appbuilder: AppBuilder, *args: Any, **kwargs: Any
+    ) -> Blueprint:
         self.stats_logger = self.appbuilder.get_app.config["STATS_LOGGER"]
         return super().create_blueprint(appbuilder, *args, **kwargs)
 
-    def _init_properties(self):
+    def _init_properties(self) -> None:
         model_id = self.datamodel.get_pk_name()
         if self.list_columns is None and not self.list_model_schema:
             self.list_columns = [model_id]
@@ -129,7 +152,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
             self.add_columns = [model_id]
         super()._init_properties()
 
-    def _get_related_filter(self, datamodel, column_name: str, value: str) -> Filters:
+    def _get_related_filter(
+        self, datamodel: Model, column_name: str, value: str
+    ) -> Filters:
         filter_field = self.related_field_filters.get(column_name)
         if isinstance(filter_field, str):
             filter_field = RelatedFieldFilter(cast(str, filter_field), FilterStartsWith)
@@ -183,7 +208,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         if time_delta:
             self.timing_stats("time", key, time_delta)
 
-    def info_headless(self, **kwargs) -> Response:
+    def info_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB _info endpoint
         """
@@ -191,7 +216,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.info.__name__, duration)
         return response
 
-    def get_headless(self, pk, **kwargs) -> Response:
+    def get_headless(self, pk: int, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET endpoint
         """
@@ -199,7 +224,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.get.__name__, duration)
         return response
 
-    def get_list_headless(self, **kwargs) -> Response:
+    def get_list_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET list endpoint
         """
@@ -212,7 +237,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_related_schema)
-    def related(self, column_name: str, **kwargs):
+    def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get related fields data
         ---
         get:

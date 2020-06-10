@@ -60,14 +60,6 @@
   &:last-child {
     padding-bottom: 40px;
   }
-
-  .Select-multi-value-wrapper .Select-input > input {
-    width: 100px;
-  }
-
-  .metrics-select .Select-multi-value-wrapper .Select-input > input {
-    width: 300px;
-  }
 }
 
 .background-transparent {
@@ -115,7 +107,7 @@
   float: left;
   padding-right: 3px;
 
-  .Select-control {
+  .dropdown {
     display: flex;
     padding: 8px;
 
@@ -144,6 +136,17 @@
 .color-popover .popover-content {
   padding: 0;
   background-color: transparent;
+}
+
+.column-option {
+  margin-left: 3px;
+}
+
+.option-label {
+  display: inline-block;
+  & ~ i {
+    margin-left: 4px;
+  }
 }
 
 .type-label {
@@ -211,7 +214,7 @@
   display: inline-flex;
 }
 
-.adhoc-filter-option {
+.adhoc-option {
   cursor: pointer;
 }
 
