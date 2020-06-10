@@ -94,8 +94,8 @@ COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
 RUN cd /app \
-        && chown -R superset:superset * \
-        && pip install -e .
+        && chown -R superset:superset *
+#        && pip install -e .
 
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 
@@ -116,12 +116,12 @@ FROM lean AS dev
 
 COPY ./requirements* ./docker/requirements* /app/
 
-USER root
-# Cache everything for dev purposes...
-RUN cd /app \
-    && pip install --ignore-installed -e . \
-    && pip install --ignore-installed -r requirements.txt \
-    && pip install --ignore-installed -r requirements-dev.txt \
-    && pip install --ignore-installed -r requirements-extra.txt \
-    && pip install --ignore-installed -r requirements-local.txt || true
+#USER root
+## Cache everything for dev purposes...
+#RUN cd /app \
+#    && pip install --ignore-installed -e . \
+#    && pip install --ignore-installed -r requirements.txt \
+#    && pip install --ignore-installed -r requirements-dev.txt \
+#    && pip install --ignore-installed -r requirements-extra.txt \
+#    && pip install --ignore-installed -r requirements-local.txt || true
 USER superset
