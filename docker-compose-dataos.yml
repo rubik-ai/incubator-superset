@@ -1,0 +1,115 @@
+x-superset-build: &superset-build
+  args:
+    NPM_BUILD_CMD: build-dev
+  context: ./
+  dockerfile: Dockerfile-dev
+x-superset-depends-on: &superset-depends-on
+  - db
+  - redis
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker/docker-init.sh:/app/docker-init.sh
+  - ./docker/pythonpath_dev:/app/pythonpath
+  - ./superset:/app/superset
+  - ./superset-frontend:/app/superset-frontend
+  - node_modules:/app/superset-frontend/node_modules
+  - superset_home:/app/superset_home
+  - ./docker/superset_config.py:/app/pythonpath/superset_config.py
+
+version: "3.7"
+services:
+  redis:
+    image: redis:3.2
+    container_name: superset_cache
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis:/data
+    networks: ["vnet"]
+
+  db:
+    env_file: docker/.env-dataos
+    image: rubiklabs/agensgraph:2.1.2.6-d2
+    # image: postgres:10
+    networks: ["vnet"]
+    container_name: superset_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_home_2:/var/lib/postgresql/data
+
+  superset:
+    env_file: docker/.env-dataos
+    # build: *superset-build
+    image: rubiklabs/superset:x3
+    container_name: superset_app
+    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    networks: ["vnet"]
+
+  superset-init:
+    # build: *superset-build
+    image: rubiklabs/superset:x3
+    container_name: superset_init
+    command: ["/app/docker-init.sh"]
+    env_file: docker/.env-dataos
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    networks: ["vnet"]
+
+  # superset-node:
+  #   image: node:10-jessie
+  #   container_name: superset_node
+  #   command: ["bash", "-c", "cd /app/superset-frontend && npm install --global webpack webpack-cli && npm install && npm run dev"]
+  #   env_file: docker/.env-dataos
+  #   depends_on: *superset-depends-on
+  #   volumes: *superset-volumes
+  #   networks: ["vnet"]
+
+  superset-worker:
+    # build: *superset-build
+    image: rubiklabs/superset:x3
+    container_name: superset_worker
+    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+    env_file: docker/.env-dataos
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    networks: ["vnet"]
+
+  # superset-tests-worker:
+  #   # build: *superset-build
+  #   image: rubiklabs/superset:x3
+  #   container_name: superset_tests_worker
+  #   command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+  #   env_file: docker/.env
+  #   environment:
+  #     DATABASE_HOST: localhost
+  #     DATABASE_DB: test
+  #     REDIS_CELERY_DB: 2
+  #     REDIS_RESULTS_DB: 3
+  #     REDIS_HOST: localhost
+  #   network_mode: host
+  #   depends_on: *superset-depends-on
+  #   volumes: *superset-volumes
+
+volumes:
+  superset_home:
+    external: false
+  node_modules:
+    external: false
+  db_home_2:
+    external: false
+  redis:
+    external: false
+
+networks:
+  vnet:
+    external:
+      name: vnet

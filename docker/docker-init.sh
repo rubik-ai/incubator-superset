@@ -51,7 +51,7 @@ echo_step "2" "Complete" "Applying DB migrations"
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
     echo_step "3" "Starting" "Loading examples"
-    superset load_examples
+    # superset load_examples
     echo_step "3" "Complete" "Loading examples"
 fi
 
