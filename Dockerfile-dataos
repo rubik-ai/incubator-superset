@@ -81,7 +81,7 @@ RUN cd /app \
         && chown -R superset:superset * \
         && pip install -e .
 
-COPY ./docker/docker-entrypoint.sh /usr/bin/
+COPY ./docker/docker-entrypoint-dataos.sh /usr/bin/docker-entrypoint.sh
 
 WORKDIR /app
 
