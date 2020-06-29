@@ -59,3 +59,12 @@ fi
 echo_step "4" "Starting" "Setting up roles and perms"
 superset init
 echo_step "4" "Complete" "Setting up roles and perms"
+
+echo "### Adding Presto DB###"
+
+echo "databases:
+ - database_name: DataOS Lake
+   sqlalchemy_uri: presto://presto-coordinator:8080/
+   tables: []" > /tmp/import.yaml
+cat /tmp/import.yaml
+superset import_datasources -p /tmp/import.yaml

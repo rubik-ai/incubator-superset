@@ -11,6 +11,7 @@ x-superset-volumes: &superset-volumes
   - node_modules:/app/superset-frontend/node_modules
   - superset_home:/app/superset_home
   - ./docker/superset_config.py:/app/pythonpath/superset_config.py
+  - ./docker/docker-entrypoint.sh:/usr/bin/docker-entrypoint.sh
 
 version: "3.7"
 
@@ -40,7 +41,7 @@ services:
 
   superset:
     env_file: docker/.env-dataos
-    image: rubiklabs/superset:0.36.0-d2
+    image: rubiklabs/superset:0.36.0-d6
     container_name: superset_app
     command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
     restart: unless-stopped
@@ -52,7 +53,7 @@ services:
       - vnet
 
   superset-init:
-    image: rubiklabs/superset:0.36.0-d2
+    image: rubiklabs/superset:0.36.0-d6
     container_name: superset_init
     command: ["/app/docker-init.sh"]
     env_file: docker/.env-dataos
@@ -72,7 +73,7 @@ services:
 
   superset-worker:
     # build: *superset-build
-    image: rubiklabs/superset:0.36.0-d2
+    image: rubiklabs/superset:0.36.0-d6
     container_name: superset_worker
     command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
     env_file: docker/.env-dataos
@@ -84,7 +85,7 @@ services:
 
   # superset-tests-worker:
   #   # build: *superset-build
-  #   image: rubiklabs/superset:x3
+  #   image: rubiklabs/superset:0.36.0-d6
   #   container_name: superset_tests_worker
   #   command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
   #   env_file: docker/.env

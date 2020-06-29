@@ -1,7 +1,7 @@
 
 ## Docker image
 ```
-docker build -t rubiklabs/superset:0.36.0-d3 -f ./Dockerfile-dataos .
+docker build -t rubiklabs/superset:0.36.0-d6 -f ./Dockerfile-dataos .
 ```
 
 ## Run

@@ -16,8 +16,8 @@ RUN mkdir /app \
 # in order to only build if and only if requirements change
 COPY ./requirements.txt /app/
 RUN cd /app \
+        && pip install --upgrade pip \
         && pip install --no-cache -r requirements.txt
-
 
 ######################################################################
 # Node stage to deal with static asset construction
@@ -68,7 +68,6 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.6/site-packages/ /usr/local/lib/python3.6/site-packages/
-
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
@@ -81,6 +80,7 @@ RUN cd /app \
         && chown -R superset:superset * \
         && pip install -e .
 
+#COPY ./docker/docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
 COPY ./docker/docker-entrypoint-dataos.sh /usr/bin/docker-entrypoint.sh
 
 WORKDIR /app
@@ -92,3 +92,21 @@ HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+
+######################################################################
+# Extend Image for presto/tests
+# TODO - rethink this part again when time > infinity ;)
+######################################################################
+FROM lean AS dev
+
+COPY ./requirements* ./docker/requirements* /app/
+
+USER root
+# Cache everything for dev purposes...
+RUN cd /app \
+    && pip install --ignore-installed -e . \
+    && pip install --ignore-installed -r requirements.txt \
+    && pip install --ignore-installed -r requirements-dev.txt \
+    && pip install --ignore-installed -r requirements-extra.txt \
+    && pip install --ignore-installed -r requirements-local.txt || true
+USER superset
