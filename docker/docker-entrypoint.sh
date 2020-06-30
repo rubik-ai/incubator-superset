@@ -17,6 +17,8 @@
 #
 set -eo pipefail
 
+cp /app/superset_config.py /app/pythonpath/superset_config.py
+
 if [ "${#}" -ne 0 ]; then
     exec "${@}"
 else

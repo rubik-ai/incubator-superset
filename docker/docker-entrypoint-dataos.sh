@@ -17,6 +17,9 @@
 #
 set -eo pipefail
 
+# COPY config
+cp /app/superset_config.py /app/pythonpath/superset_config.py
+
 if [ "x${CERT_FILE}" = "x" ]; then
     gunicorn \
         --bind  "0.0.0.0:${SUPERSET_PORT}" \

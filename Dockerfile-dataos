@@ -109,4 +109,12 @@ RUN cd /app \
     && pip install --ignore-installed -r requirements-dev.txt \
     && pip install --ignore-installed -r requirements-extra.txt \
     && pip install --ignore-installed -r requirements-local.txt || true
+
+## For oAuth
+RUN cd /app \
+    && pip install "werkzeug==0.16.0" \
+    && pip install requests-oauthlib==1.1.0
+
+COPY ./docker/superset_config.py /app/superset_config.py
+
 USER superset
